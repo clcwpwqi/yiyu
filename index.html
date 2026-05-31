@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>每日语录 MD3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <style>
+        /* --- CSS 变量定义 --- */
+        :root {
+            /* 默认主题：浅蓝色 (Blue) */
+            --primary: #00668B;
+            --on-primary: #FFFFFF;
+            --primary-container: #C4E7FF;
+            --on-primary-container: #001E2D;
+            --background: #F8FDFF;
+            --on-background: #001F25;
+            --surface: #F8FDFF;
+            --surface-variant: #DDE3EA;
+            --on-surface-variant: #41484D;
+            --outline: #71787E;
+            
+            --nav-bg: #EFF4F9;
+            --nav-indicator: #C4E7FF;
+
+            --font-family: 'Roboto', system-ui, sans-serif;
+            --transition-speed: 0.3s;
+            --border-radius-lg: 28px;
+            --border-radius-md: 16px;
+        }
+
+        /* 预定义主题类 */
+        body.theme-green {
+            --primary: #006C4C;
+            --primary-container: #89F8C6; /* 调整为更浅的绿色背景 */
+            --on-primary-container: #002114;
+            --background: #FBFDF9;
+            --on-background: #00201A;
+            --surface-variant: #DBE5DE;
+            --nav-bg: #EEF6F0;
+            --nav-indicator: #C4EED0;
+        }
+
+        body.theme-pink {
+            --primary: #8B0066;
+            --primary-container: #FFD8EC;
+            --on-primary-container: #370026;
+            --background: #FFF8F9;
+            --on-background: #230018;
+            --surface-variant: #F0DEE5;
+            --nav-bg: #FFF0F6;
+            --nav-indicator: #FFD6F0;
+        }
+
+        body.theme-grey {
+            --primary: #5E5E5E;
+            --primary-container: #E2E2E2;
+            --on-primary-container: #1B1B1B;
+            --background: #F9F9F9;
+            --on-background: #1C1C1C;
+            --surface-variant: #E0E0E0;
+            --nav-bg: #F0F0F0;
+            --nav-indicator: #D6D6D6;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background-color: var(--background);
+            color: var(--on-background);
+            height: 100vh;
+            overflow: hidden; /* 防止整体滚动 */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- 布局 --- */
+        #app {
+            height: 100%;
+            width: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%; /* 留出底栏空间由 JS 动态控制或 padding 控制 */
+            padding: 24px 24px 100px 24px; /* 底部留白给导航栏 */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+
+        /* --- 首页 --- */
+        #home-page {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .datetime-wrapper {
+            position: absolute;
+            top: 12%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #clock-time {
+            font-size: 3.5rem;
+            font-weight: 500;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        #clock-date {
+            font-size: 1.1rem;
+            margin-top: 8px;
+            color: var(--on-surface-variant);
+            opacity: 0.8;
+        }
+
+        .quote-card {
+            background-color: var(--primary-container);
+            color: var(--on-primary-container);
+            padding: 40px 32px;
+            border-radius: var(--border-radius-lg);
+            font-size: 1.6rem;
+            line-height: 1.5;
+            max-width: 90%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+        
+        .hint-text {
+            position: absolute;
+            bottom: 120px;
+            font-size: 0.8rem;
+            color: var(--on-surface-variant);
+            opacity: 0.4;
+        }
+
+        /* --- 设置页 --- */
+        #settings-page {
+            background-color: var(--background);
+            padding-top: 60px;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin: 24px 0 12px 0;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-card {
+            background-color: #fff; /* Fallback */
+            background-color: rgba(255,255,255,0.6);
+            border: 1px solid var(--surface-variant);
+            border-radius: var(--border-radius-md);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* --- 控件样式 --- */
+        button {
+            background-color: var(--primary);
+            color: var(--on-primary);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+            box-shadow: none;
+        }
+
+        button.secondary {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--outline);
+            box-shadow: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--outline);
+            background: transparent;
+            color: var(--on-background);
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+
+        /* 颜色选择器 */
+        .theme-selector {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .color-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .color-dot.active {
+            border-color: var(--on-background);
+        }
+        .color-dot[data-color="blue"] { background: #C4E7FF; }
+        .color-dot[data-color="green"] { background: #C4EED0; }
+        .color-dot[data-color="pink"] { background: #FFD6F0; }
+        .color-dot[data-color="grey"] { background: #E2E2E2; }
+
+        /* --- 底部导航栏 (常驻铺满) --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background-color: var(--nav-bg);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-radius: 16px 16px 0 0; /* 顶部圆角 */
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            transform: translateY(100%); /* 默认隐藏 */
+            transition: transform var(--transition-speed) cubic-bezier(0.4, 0.0, 0.2, 1);
+            z-index: 100;
+        }
+
+        .bottom-nav.visible {
+            transform: translateY(0);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 100%;
+            color: var(--on-surface-variant);
+            cursor: pointer;
+        }
+
+        .nav-pill {
+            width: 64px;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-item.active .nav-pill {
+            background-color: var(--nav-indicator);
+        }
+
+        .nav-item.active {
+            color: var(--on-background);
+            font-weight: bold;
+        }
+
+        /* --- 语录库弹窗 --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none; /* JS control */
+            justify-content: center;
+            align-items: flex-end; /* Mobile style: sheet from bottom or center */
+        }
+        
+        .modal-overlay.open {
+            display: flex;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal-content {
+            background: var(--background);
+            width: 100%;
+            height: 90%; /* 占满大部分屏幕 */
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .modal-title { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid var(--outline);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 16px;
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* 查看模式列表 */
+        .quote-list { list-style: none; padding: 0; margin: 0; }
+        .quote-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--surface-variant);
+            font-size: 0.95rem;
+            color: var(--on-background);
+        }
+
+        /* 编辑模式文本域 */
+        .quote-editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--on-background);
+            outline: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* --- Toast --- */
+        #toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 50px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 300;
+        }
+    </style>
+</head>
+<body class="theme-blue"> <div id="app">
+    <div id="home-page" class="page active">
+        <div class="datetime-wrapper">
+            <div id="clock-time">00:00</div>
+            <div id="clock-date">2023-01-01 星期一</div>
+        </div>
+        
+        <div class="quote-card" id="quote-display">
+            加载中...
+        </div>
+
+        <div class="hint-text">
+            ← 上一条 · 下一条 →
+        </div>
+    </div>
+
+    <div id="settings-page" class="page">
+        <h2 style="margin-left:4px; color:var(--primary);">设置</h2>
+        
+        <div class="setting-card">
+            <div class="section-title" style="margin-top:0;">
+                <span class="material-symbols-rounded">palette</span>
+                主题颜色
+            </div>
+            <div class="theme-selector" id="theme-options">
+                <div class="color-dot active" data-color="blue"></div>
+                <div class="color-dot" data-color="green"></div>
+                <div class="color-dot" data-color="pink"></div>
+                <div class="color-dot" data-color="grey"></div>
+            </div>
+        </div>
+
+        <div class="setting-card">
+            <div class="section-title" style="margin-top:0;">
+                <span class="material-symbols-rounded">menu_book</span>
+                语录库
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span>当前语录: <b id="quote-count-display">0</b> 条</span>
+                <button class="secondary" onclick="openQuoteManager()">
+                    <span class="material-symbols-rounded">edit_note</span> 查看/编辑
+                </button>
+            </div>
+            <hr style="border:0; border-top:1px solid var(--surface-variant); margin:12px 0;">
+            
+            <label style="font-size:0.9rem; color:var(--on-surface-variant);">文件导入 (.txt/.json)</label>
+            <input type="file" id="file-import" accept=".txt,.json" style="border:none; padding-left:0;">
+        </div>
+
+        <div class="setting-card">
+            <div class="section-title" style="margin-top:0;">
+                <span class="material-symbols-rounded">settings_system_daydream</span>
+                系统
+            </div>
+            <label>时区设置</label>
+            <select id="timezone-select">
+                <option value="system">跟随系统</option>
+                <option value="Asia/Shanghai">北京时间</option>
+                <option value="America/New_York">纽约时间</option>
+                <option value="Europe/London">伦敦时间</option>
+            </select>
+            
+            <div style="margin-top:16px;">
+                <button onclick="backupData()" style="width:100%; justify-content:center;">
+                    <span class="material-symbols-rounded">save</span> 备份数据
+                </button>
+                <button class="secondary" onclick="document.getElementById('file-restore').click()" style="width:100%; justify-content:center; margin-top:8px;">
+                    <span class="material-symbols-rounded">restore</span> 恢复数据
+                </button>
+                <input type="file" id="file-restore" style="display:none;" accept=".json" onchange="restoreData(this)">
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home')">
+            <div class="nav-pill">
+                <span class="material-symbols-rounded">home</span>
+            </div>
+            <span style="font-size:0.75rem;">首页</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('settings')">
+            <div class="nav-pill">
+                <span class="material-symbols-rounded">settings</span>
+            </div>
+            <span style="font-size:0.75rem;">设置</span>
+        </div>
+    </nav>
+</div>
+
+<div class="modal-overlay" id="quote-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">语录库</div>
+            <button class="secondary" onclick="closeQuoteManager()" style="padding: 8px 12px; border-radius:12px;">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+        
+        <div class="modal-body" id="modal-body-view">
+            <ul class="quote-list" id="quote-list-ul"></ul>
+        </div>
+        <div class="modal-body" id="modal-body-edit" style="display:none;">
+            <textarea class="quote-editor" id="quote-editor-text" placeholder="每行一条语录..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <div id="action-view">
+                <button onclick="enterEditMode()">
+                    <span class="material-symbols-rounded">edit</span> 编辑模式
+                </button>
+            </div>
+            <div id="action-edit" style="display:none;">
+                <button class="secondary" onclick="cancelEditMode()">取消</button>
+                <button onclick="saveEditMode()">
+                    <span class="material-symbols-rounded">check</span> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast">提示</div>
+
+<script>
+    // --- 数据与状态 ---
+    const defaultQuotes = [
+    "欲买桂花同载酒，只可惜故人，何日再见呢。",
+    "朋友，假使有一日不得不同你相别，你在我的记忆中也会如黄金般闪耀。",
+    "我虽无意逐鹿，却知苍生苦楚。只愿荡涤四方，护得浮世一隅。",
+    "契约既成，食言者当受食岩之罚。",
+    "深山踏红叶，耳畔闻鹿鸣。我很喜欢枫叶，可惜，枫叶红时，总多离别。",
+    "总会有地上的生灵，敢于直面雷霆的威光。",
+    "我的枪缨，早就屠戮了无尽的冤魂，连我本人，不免也被黑暗吞噬。",
+    "如遇失道旷野之难，路遭贼人之难，水火刀兵之难，鬼神药毒之难，恶兽毒虫之难，冤家恶人之难，便呼我名。三眼五显仙人——魈，听召前来守护。",
+    "巴尔泽布，我已登神！",
+    "浮世景色百千年依旧，人之在世却如白露与泡影，虚无。",
+    "所谓的永恒，就是不再失去已拥有之物，但从别的角度说，也放弃了得到更多的可能。",
+    "若知是梦何须醒，不必真如一相会。",
+    "只要坚信自己的道路，就无所谓天气是晴是雨。",
+    "在黎明到来之前，必须有人稍微照亮黑暗。",
+    "正是因为无法更改、不可违逆、只能接受，命运，才会被称之为命运。",
+    "存在本身，就是足够美好的事情了吧！",
+    "心有所向，日复一日，必有精进。",
+    "有问题就大胆问出来，没有答案就会一直追寻下去。毕竟，谁又能保证神就不会犯错呢？",
+    "阴阳有序，命运无常。死亡难以预测，却也有它的规矩……唯有认识它、尊重它，才能明白活着的价值。",
+    "森林会记住一切。",
+    "不是所有折翼坠落的鹰，都能腾空而起，但如果不冒这个险，那就永远碰不到天空。",
+    "风向是会转变的，终有一天会吹向更加光亮的地方。",
+    "只要不失去你的崇高，整个世界都会向你敞开。",
+    "万事皆有代价，既然寻求常人无法企及之事，那就必然付出世人无法想象的代价。",
+    "最初鸟儿是不会飞翔的，飞翔是它们勇敢跃入峡谷的奖励。",
+    "我等必将复起，古木已发新枝。",
+    "中国人从此站立起来了。",
+    "领导我们事业的核心力量是中国共产党，指导我们思想的理论基础是马克思列宁主义。",
+    "工、农、商、学、兵、政、党这七个方面，党是领导一切的。",
+    "下定决心，不怕牺牲，排除万难，去争取胜利。",
+    "坚定正确的政治方向，艰苦朴素的工作作风，灵活机动的战略战术。",
+    "不管黑猫白猫，抓住老鼠就是好猫。",
+    "走自己的道路，建设有中国特色的社会主义。",
+    "一个国家，两种制度。",
+    "基本路线要管一百年，动摇不得。",
+    "为把我军建设成为一支强大的现代化正规化革命军队而奋斗。",
+    "讲学习，讲政治，讲正气。",
+    "始终做到‘三个代表’，是我们党的立党之本、执政之基、力量之源。",
+    "党的作风关系党的形象，关系人心向背，关系党的生命。",
+    "如果说鸟是搞活经济的话，那么，笼子就是国家计划。",
+    "我们的敌人最害怕我们的团结。"
+    ];
+
+    let appState = {
+        theme: 'blue',
+        timezone: 'system',
+        quotes: [...defaultQuotes],
+        lastIndex: 0
+    };
+
+    let isNavVisible = false; // 首页底栏状态
+
+    // --- 初始化 ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        applyTheme(appState.theme);
+        initClock();
+        initGestures();
+        initNavLogic();
+        showRandomQuote();
+        updateSettingsUI();
+    });
+
+    // 屏蔽右键
+    document.oncontextmenu = function() { return false; };
+
+    // --- 主题逻辑 ---
+    function applyTheme(color) {
+        document.body.className = `theme-${color}`;
+        // 更新UI选中状态
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            if(dot.dataset.color === color) dot.classList.add('active');
+            else dot.classList.remove('active');
+        });
+        appState.theme = color;
+        saveData();
+    }
+
+    document.getElementById('theme-options').addEventListener('click', (e) => {
+        if(e.target.classList.contains('color-dot')) {
+            applyTheme(e.target.dataset.color);
+        }
+    });
+
+    // --- 导航栏逻辑 (点击空白切换) ---
+    function initNavLogic() {
+        const app = document.getElementById('app');
+        const nav = document.getElementById('bottom-nav');
+        
+        app.addEventListener('click', (e) => {
+            // 如果处于设置页面，始终显示底栏，不允许点击隐藏（防止操作中断）
+            const settingsPage = document.getElementById('settings-page');
+            if (settingsPage.classList.contains('active')) return;
+
+            // 检查点击目标是否是交互元素
+            const isInteractive = e.target.closest('button') || 
+                                  e.target.closest('input') || 
+                                  e.target.closest('select') || 
+                                  e.target.closest('.bottom-nav') ||
+                                  e.target.closest('.modal-overlay');
+
+            if (!isInteractive) {
+                toggleNav();
+            }
+        });
+    }
+
+    function toggleNav(forceState = null) {
+        const nav = document.getElementById('bottom-nav');
+        if (forceState !== null) {
+            isNavVisible = forceState;
+        } else {
+            isNavVisible = !isNavVisible;
+        }
+        
+        if (isNavVisible) {
+            nav.classList.add('visible');
+        } else {
+            nav.classList.remove('visible');
+        }
+    }
+
+    function switchTab(tab) {
+        const home = document.getElementById('home-page');
+        const set = document.getElementById('settings-page');
+        const items = document.querySelectorAll('.nav-item');
+
+        if (tab === 'home') {
+            home.classList.add('active');
+            set.classList.remove('active');
+            items[0].classList.add('active');
+            items[1].classList.remove('active');
+            // 回到首页，恢复默认隐藏状态 (或者保持用户最后的状态，这里设为默认隐藏体验更沉浸)
+            toggleNav(false);
+        } else {
+            home.classList.remove('active');
+            set.classList.add('active');
+            items[0].classList.remove('active');
+            items[1].classList.add('active');
+            // 进入设置页，必须显示底栏
+            toggleNav(true);
+            updateSettingsUI();
+        }
+    }
+
+    // --- 时钟 ---
+    function initClock() {
+        const timeEl = document.getElementById('clock-time');
+        const dateEl = document.getElementById('clock-date');
+        
+        setInterval(() => {
+            const now = new Date();
+            let tz = appState.timezone === 'system' ? undefined : appState.timezone;
+            
+            try {
+                timeEl.textContent = now.toLocaleTimeString('en-US', {
+                    hour12: false, hour: '2-digit', minute: '2-digit', timeZone: tz
+                });
+                dateEl.textContent = now.toLocaleDateString('zh-CN', {
+                    year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', timeZone: tz
+                });
+            } catch(e) {
+                timeEl.textContent = "Time Error";
+            }
+        }, 1000);
+    }
+
+    // --- 语录显示与手势 ---
+    function showRandomQuote() {
+        if (!appState.quotes.length) {
+            document.getElementById('quote-display').textContent = "语录库为空，请去设置导入";
+            return;
+        }
+        const idx = Math.floor(Math.random() * appState.quotes.length);
+        appState.lastIndex = idx;
+        renderQuote(idx);
+    }
+
+    function renderQuote(index) {
+        if (!appState.quotes.length) return;
+        const card = document.getElementById('quote-display');
+        card.style.opacity = 0;
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            card.textContent = appState.quotes[index];
+            card.style.opacity = 1;
+            card.style.transform = 'scale(1)';
+        }, 200);
+    }
+
+    function initGestures() {
+        let startX = 0;
+        const el = document.getElementById('home-page');
+        el.addEventListener('touchstart', e => startX = e.changedTouches[0].screenX, {passive:true});
+        el.addEventListener('touchend', e => {
+            const endX = e.changedTouches[0].screenX;
+            if (endX - startX > 50) { // 右滑 -> 下一条
+                let next = appState.lastIndex + 1;
+                if (next >= appState.quotes.length) next = 0;
+                appState.lastIndex = next;
+                renderQuote(next);
+            } else if (startX - endX > 50) { // 左滑 -> 上一条
+                let prev = appState.lastIndex - 1;
+                if (prev < 0) prev = appState.quotes.length - 1;
+                appState.lastIndex = prev;
+                renderQuote(prev);
+            }
+        }, {passive:true});
+    }
+
+    // --- 语录库管理 (查看/编辑) ---
+    const modal = document.getElementById('quote-modal');
+    const viewBody = document.getElementById('modal-body-view');
+    const editBody = document.getElementById('modal-body-edit');
+    const viewActions = document.getElementById('action-view');
+    const editActions = document.getElementById('action-edit');
+
+    function openQuoteManager() {
+        // 渲染列表
+        const ul = document.getElementById('quote-list-ul');
+        ul.innerHTML = '';
+        appState.quotes.forEach(q => {
+            const li = document.createElement('li');
+            li.textContent = q;
+            ul.appendChild(li);
+        });
+
+        // 重置为查看模式
+        viewBody.style.display = 'block';
+        editBody.style.display = 'none';
+        viewActions.style.display = 'block';
+        editActions.style.display = 'none';
+        
+        modal.classList.add('open');
+    }
+
+    function closeQuoteManager() {
+        modal.classList.remove('open');
+    }
+
+    function enterEditMode() {
+        // 将数组转换为文本
+        const text = appState.quotes.join('\n');
+        document.getElementById('quote-editor-text').value = text;
+
+        viewBody.style.display = 'none';
+        editBody.style.display = 'block';
+        viewActions.style.display = 'none';
+        editActions.style.display = 'flex';
+    }
+
+    function cancelEditMode() {
+        // 返回查看模式
+        viewBody.style.display = 'block';
+        editBody.style.display = 'none';
+        viewActions.style.display = 'block';
+        editActions.style.display = 'none';
+    }
+
+    function saveEditMode() {
+        const text = document.getElementById('quote-editor-text').value;
+        // 过滤空行
+        const newQuotes = text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        
+        if (newQuotes.length === 0) {
+            showToast("语录不能为空");
+            return;
+        }
+
+        appState.quotes = newQuotes;
+        saveData();
+        updateSettingsUI();
+        showToast("已保存修改");
+        
+        // 刷新列表显示
+        const ul = document.getElementById('quote-list-ul');
+        ul.innerHTML = '';
+        appState.quotes.forEach(q => {
+            const li = document.createElement('li');
+            li.textContent = q;
+            ul.appendChild(li);
+        });
+
+        cancelEditMode();
+        // 刷新首页
+        showRandomQuote();
+    }
+
+    // --- 文件导入导出 ---
+    // 导入
+    document.getElementById('file-import').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const content = ev.target.result;
+            let list = [];
+            try {
+                if (file.name.endsWith('.json')) {
+                    list = JSON.parse(content);
+                } else {
+                    // CSV 风格解析 "a","b"
+                    if (content.includes('","')) {
+                        const regex = /"([^"]*)"/g;
+                        let m;
+                        while(m = regex.exec(content)) list.push(m[1]);
+                    } else {
+                        list = content.split('\n');
+                    }
+                }
+                // 清洗
+                list = list.map(s => typeof s === 'string' ? s.trim() : "").filter(s => s);
+                if (list.length) {
+                    appState.quotes = [...appState.quotes, ...list];
+                    saveData();
+                    updateSettingsUI();
+                    showToast(`成功导入 ${list.length} 条`);
+                }
+            } catch(err) {
+                showToast("文件格式错误");
+            }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    // 备份
+    function backupData() {
+        const str = JSON.stringify(appState, null, 2);
+        const blob = new Blob([str], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `quotes_backup_${Date.now()}.json`;
+        a.click();
+    }
+
+    // 恢复
+    function restoreData(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const d = JSON.parse(ev.target.result);
+                if(d.quotes && Array.isArray(d.quotes)) {
+                    appState = d;
+                    saveData();
+                    location.reload(); // 刷新以应用所有设置
+                }
+            } catch(e) {
+                showToast("备份文件无效");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- 杂项 ---
+    function updateSettingsUI() {
+        document.getElementById('quote-count-display').textContent = appState.quotes.length;
+        document.getElementById('timezone-select').value = appState.timezone;
+    }
+
+    document.getElementById('timezone-select').addEventListener('change', (e) => {
+        appState.timezone = e.target.value;
+        saveData();
+    });
+
+    function saveData() {
+        localStorage.setItem('md3_quotes_v2', JSON.stringify(appState));
+    }
+
+    function loadData() {
+        const s = localStorage.getItem('md3_quotes_v2');
+        if(s) {
+            try { appState = {...appState, ...JSON.parse(s)}; } catch(e){}
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 2000);
+    }
+</script>
+</body>
+</html>
